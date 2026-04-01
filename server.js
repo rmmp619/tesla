@@ -2,8 +2,7 @@ const WebSocket = require('ws');
 const ytdl = require('@distube/ytdl-core');
 const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
-
-ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfmpegPath(ffmpegPath); // ISTO É CRUCIAL
 
 const PORT = process.env.PORT || 8080;
 const wss = new WebSocket.Server({ port: PORT });
