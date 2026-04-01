@@ -3,10 +3,9 @@ const ytdl = require('@distube/ytdl-core');
 const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 
-// Configura o caminho do FFmpeg automaticamente
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 10000;
 const wss = new WebSocket.Server({ port: PORT });
 
 console.log(`Servidor de Stream ativo na porta ${PORT}`);
@@ -25,18 +24,23 @@ wss.on('connection', (ws) => {
 
                 const videoUrl = `https://www.youtube.com/watch?v=${data.videoId}`;
                 
-                // Obtém o stream do YouTube
+                // Opções para tentar evitar o bloqueio de "Bot"
                 const stream = ytdl(videoUrl, { 
                     quality: 'highestvideo',
-                    filter: 'videoonly' 
+                    filter: 'videoonly',
+                    requestOptions: {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        }
+                    }
                 });
 
-                // Converte para MJPEG (Sequência de imagens para o Canvas)
+                // CORREÇÃO: Usar .videoCodec() em vez de .vcodec()
                 ffmpegProcess = ffmpeg(stream)
                     .fps(24)
                     .size('640x360')
                     .format('image2pipe')
-                    .vcodec('mjpeg')
+                    .videoCodec('mjpeg') 
                     .on('error', (err) => console.log('FFmpeg Status:', err.message))
                     .pipe();
 
@@ -51,12 +55,11 @@ wss.on('connection', (ws) => {
                 ffmpegProcess.kill();
             }
         } catch (e) {
-            console.error("Erro no processamento:", e);
+            console.error("Erro no processamento:", e.message);
         }
     });
 
     ws.on('close', () => {
         if (ffmpegProcess) ffmpegProcess.kill();
-        console.log('Cliente desligou');
     });
 });
