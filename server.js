@@ -13,7 +13,6 @@ wss.on('connection', (ws) => {
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
-
             if (data.type === 'start' && data.videoId) {
                 const videoUrl = `https://www.youtube.com/watch?v=${data.videoId}`;
                 if (ffmpegProcess) ffmpegProcess.kill();
@@ -24,20 +23,19 @@ wss.on('connection', (ws) => {
                 });
 
                 ffmpegProcess = ffmpeg(stream)
-                    .fps(24) // Frames por segundo
-                    .size('640x360') // Otimizado para o browser do carro
+                    .fps(24)
+                    .size('640x360')
                     .format('image2pipe')
                     .vcodec('mjpeg')
-                    .on('error', (err) => console.log('FFmpeg parou:', err.message))
+                    .on('error', (err) => console.log('FFmpeg Status:', err.message))
                     .pipe();
 
                 ffmpegProcess.on('data', (chunk) => {
                     if (ws.readyState === WebSocket.OPEN) {
-                        ws.send(chunk); // Envia frame a frame para o Canvas
+                        ws.send(chunk);
                     }
                 });
             }
-
             if (data.type === 'stop' && ffmpegProcess) {
                 ffmpegProcess.kill();
             }
@@ -46,5 +44,7 @@ wss.on('connection', (ws) => {
         }
     });
 
-    ws.on('close', () => { if (ffmpegProcess) ffmpegProcess.kill(); });
+    ws.on('close', () => { 
+        if (ffmpegProcess) ffmpegProcess.kill(); 
+    });
 });
