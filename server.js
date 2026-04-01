@@ -22,26 +22,26 @@ wss.on('connection', (ws) => {
                 console.log('A processar vídeo:', data.videoId);
                 if (ffmpegProcess) ffmpegProcess.kill();
 
-                const videoUrl = `https://www.youtube.com/watch?v=${data.videoId}`;
-                
-                // Opções para tentar evitar o bloqueio de "Bot"
-                const stream = ytdl(videoUrl, { 
+                // Tenta enganar o YouTube com um User-Agent de browser real
+                const stream = ytdl(`https://www.youtube.com/watch?v=${data.videoId}`, { 
                     quality: 'highestvideo',
                     filter: 'videoonly',
                     requestOptions: {
                         headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                         }
                     }
                 });
 
-                // CORREÇÃO: Usar .videoCodec() em vez de .vcodec()
+                // CORREÇÃO: .videoCodec('mjpeg') em vez de .vcodec()
                 ffmpegProcess = ffmpeg(stream)
                     .fps(24)
                     .size('640x360')
                     .format('image2pipe')
                     .videoCodec('mjpeg') 
-                    .on('error', (err) => console.log('FFmpeg Status:', err.message))
+                    .on('error', (err) => {
+                        console.log('FFmpeg parou ou vídeo bloqueado:', err.message);
+                    })
                     .pipe();
 
                 ffmpegProcess.on('data', (chunk) => {
