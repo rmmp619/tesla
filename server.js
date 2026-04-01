@@ -1,3 +1,6 @@
+const ffmpegPath = require('ffmpeg-static');
+const ffmpeg = require('fluent-ffmpeg');
+ffmpeg.setFfmpegPath(ffmpegPath); // Diz ao programa para usar o binário estático
 const WebSocket = require('ws');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
