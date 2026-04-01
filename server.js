@@ -4,18 +4,20 @@ const ytdl = require('@distube/ytdl-core');
 const ffmpegPath = require('ffmpeg-static');
 const ffmpeg = require('fluent-ffmpeg');
 
+// 1. Configurar o FFmpeg
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-// Criar um servidor HTTP simples (O Render exige isto)
+// 2. Criar Servidor HTTP (Obrigatório para o Render não dar Erro de Conexão)
 const server = http.createServer((req, res) => {
     res.writeHead(200);
-    res.end("Servidor de Stream Ativo");
+    res.end("Servidor CarTube Ativo");
 });
 
+// 3. Acoplar o WebSocket ao servidor HTTP
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws) => {
-    console.log('Tesla ligado');
+    console.log('Tesla ligado com sucesso!');
     let ffmpegProcess = null;
 
     ws.on('message', async (message) => {
@@ -24,10 +26,16 @@ wss.on('connection', (ws) => {
             if (data.type === 'start' && data.videoId) {
                 if (ffmpegProcess) ffmpegProcess.kill();
 
-                const stream = ytdl(`https://www.youtube.com/watch?v=\${data.videoId}`, { 
+                console.log('Iniciando stream do vídeo:', data.videoId);
+
+                const stream = ytdl(`https://www.youtube.com/watch?v=${data.videoId}`, { 
                     quality: 'highestvideo',
                     filter: 'videoonly',
-                    requestOptions: { headers: { 'User-Agent': 'Mozilla/5.0...' } }
+                    requestOptions: {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                        }
+                    }
                 });
 
                 ffmpegProcess = ffmpeg(stream)
@@ -35,7 +43,7 @@ wss.on('connection', (ws) => {
                     .size('640x360')
                     .format('image2pipe')
                     .videoCodec('mjpeg')
-                    .on('error', (err) => console.log('FFmpeg:', err.message))
+                    .on('error', (err) => console.log('FFmpeg Status:', err.message))
                     .pipe();
 
                 ffmpegProcess.on('data', (chunk) => {
@@ -43,14 +51,19 @@ wss.on('connection', (ws) => {
                 });
             }
             if (data.type === 'stop' && ffmpegProcess) ffmpegProcess.kill();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error("Erro interno:", e.message);
+        }
     });
 
-    ws.on('close', () => { if (ffmpegProcess) ffmpegProcess.kill(); });
+    ws.on('close', () => {
+        if (ffmpegProcess) ffmpegProcess.kill();
+        console.log('Tesla desconectado');
+    });
 });
 
-// O Render passa a porta correta aqui
+// 4. Escutar na porta que o Render fornece
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-    console.log(`Servidor a correr na porta \${PORT}`);
+    console.log(`Servidor a rodar na porta ${PORT}`);
 });
